@@ -8,6 +8,7 @@ import more from '../assets/more.svg'
 import like from '../assets/like.svg'
 import comment from '../assets/comment.svg'
 import send from '../assets/send.svg'
+import trash from '../assets/trash.svg'
 
 export default class Feed extends Component {
   state = {
@@ -16,17 +17,18 @@ export default class Feed extends Component {
 
   async componentDidMount() {
     this.registerToSocket()
-
     const response = await api.get('posts')
     this.setState({ feed: response.data })
   }
 
+  /* Backend envia 3 tipos de mensagens via websocket 
+    (post, like e delete) Ao receber a mensagem com o  
+    novo Post colocamos a mesma na primeira posição do 
+                    feed de posts */
+
   registerToSocket = () => {
-    //backend envia 2 tipos de mensagens via websocket (post e like)
     const socket = io('http://localhost:8080')
 
-    /* Ao receber a mensagem com o novo Post será 
-    colocado a mesma na primeira posição do feed de posts */
     socket.on('post', newPost => {
       this.setState({ feed: [newPost, ...this.state.feed] })
     })
@@ -38,11 +40,23 @@ export default class Feed extends Component {
         )
       })
     })
-  }
 
+    socket.on('delete', deletedPost => {
+      this.setState({
+        feed: this.state.feed.filter(post =>
+          post._id !== deletedPost._id
+        )
+      })
+    })
+  }
 
   handleLike = async id => {
     await api.post(`/posts/${id}/like`)
+  }
+
+  handleDelete = async id => {
+    console.log(id)
+    await api.delete(`/posts/${id}`)
   }
 
   render() {
@@ -68,6 +82,9 @@ export default class Feed extends Component {
                   </button>
                   <img src={comment} alt='Botão para adicionar comentário ao Post' />
                   <img src={send} alt='Botão para compartilhar o Post' />
+                  <button onClick={() => this.handleDelete(post._id)}>
+                    <img src={trash} alt='Botão para apagar o Post' />
+                  </button>
                 </div>
 
                 <strong>{post.likes} curtidas</strong>
