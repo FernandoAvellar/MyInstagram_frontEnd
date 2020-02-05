@@ -1,4 +1,5 @@
 import React, { Component } from 'react';
+import api from '../services/api'
 
 import './Feed.css'
 
@@ -8,63 +9,53 @@ import comment from '../assets/comment.svg'
 import send from '../assets/send.svg'
 
 export default class Feed extends Component {
+  state = {
+    feed: [],
+  }
+
+  async componentDidMount() {
+    const response = await api.get('posts')
+    this.setState({ feed: response.data })
+  }
+
+  handleLike = async id => {
+    await api.post(`/posts/${id}/like`)
+  }
+
   render() {
     return (
-        <section id="post-list">
-          <article>
+      <section id="post-list">
+        {this.state.feed.map(post => (
+          <article key={post._id}>
             <header>
               <div className="user-info">
-                <span>Fernando Avellar Júnior</span>
-                <span className="place">Santa Rita do Sapucaí</span>
+                <span>{post.author}</span>
+                <span className="place">{post.place}</span>
               </div>
-              <img src={more} alt="Mais"/>
+              <img src={more} alt="Mais" />
             </header>
 
-            <img src="http://localhost:8080/Files/SurfandoEmFamilia.jpg" alt='Surfando em família' />
+            <img src={`http://localhost:8080/Files/${post.image}`} alt={post.description} />
 
             <footer>
               <div className="actions">
-                <img src={like} alt=''/>
-                <img src={comment} alt=''/>
-                <img src={send} alt=''/>
+                <button onClick={() => this.handleLike(post._id)}>
+                  <img src={like} alt='Botão para curtir o Post' />
+                </button>
+                <img src={comment} alt='Botão para adicionar comentário ao Post' />
+                <img src={send} alt='Botão para compartilhar o Post' />
               </div>
 
-              <strong>900 curtidas</strong>
+              <strong>{post.likes} curtidas</strong>
 
               <p>
-                Surfando em família!
-                <span>#familia #aquarioSP</span>
+                {post.description}
+                <span>{post.hashtags}</span>
               </p>
             </footer>
           </article>
-
-          <article>
-            <header>
-              <div className="user-info">
-                <span>Fernando Avellar</span>
-                <span className="place">Santa Rita do Sapucaí</span>
-              </div>
-              <img src={more} alt="Mais"/>
-            </header>
-
-            <img src="http://localhost:8080/Files/SurfandoEmFamilia.jpg" alt='Surfando em família' />
-
-            <footer>
-              <div className="actions">
-                <img src={like} alt=''/>
-                <img src={comment} alt=''/>
-                <img src={send} alt=''/>
-              </div>
-
-              <strong>900 curtidas</strong>
-
-              <p>
-                Surfando em família!
-                <span>#familia #aquarioSP</span>
-              </p>
-            </footer>
-          </article>
-        </section>
+        ))}
+      </section>
     )
   }
 }
