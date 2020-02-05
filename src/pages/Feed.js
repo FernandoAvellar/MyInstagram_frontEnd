@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import api from '../services/api'
+import io from 'socket.io-client'
 
 import './Feed.css'
 
@@ -14,9 +15,31 @@ export default class Feed extends Component {
   }
 
   async componentDidMount() {
+    this.registerToSocket()
+
     const response = await api.get('posts')
     this.setState({ feed: response.data })
   }
+
+  registerToSocket = () => {
+    //backend envia 2 tipos de mensagens via websocket (post e like)
+    const socket = io('http://localhost:8080')
+
+    /* Ao receber a mensagem com o novo Post será 
+    colocado a mesma na primeira posição do feed de posts */
+    socket.on('post', newPost => {
+      this.setState({ feed: [newPost, ...this.state.feed] })
+    })
+
+    socket.on('like', newLike => {
+      this.setState({
+        feed: this.state.feed.map(post =>
+          post._id === newLike._id ? newLike : post
+        )
+      })
+    })
+  }
+
 
   handleLike = async id => {
     await api.post(`/posts/${id}/like`)
@@ -24,37 +47,39 @@ export default class Feed extends Component {
 
   render() {
     return (
-      <section id="post-list">
-        {this.state.feed.map(post => (
-          <article key={post._id}>
-            <header>
-              <div className="user-info">
-                <span>{post.author}</span>
-                <span className="place">{post.place}</span>
-              </div>
-              <img src={more} alt="Mais" />
-            </header>
+      <section id="post-list" >
+        {
+          this.state.feed.map(post => (
+            <article key={post._id}>
+              <header>
+                <div className="user-info">
+                  <span>{post.author}</span>
+                  <span className="place">{post.place}</span>
+                </div>
+                <img src={more} alt="Mais" />
+              </header>
 
-            <img src={`http://localhost:8080/Files/${post.image}`} alt={post.description} />
+              <img src={`http://localhost:8080/Files/${post.image}`} alt={post.description} />
 
-            <footer>
-              <div className="actions">
-                <button onClick={() => this.handleLike(post._id)}>
-                  <img src={like} alt='Botão para curtir o Post' />
-                </button>
-                <img src={comment} alt='Botão para adicionar comentário ao Post' />
-                <img src={send} alt='Botão para compartilhar o Post' />
-              </div>
+              <footer>
+                <div className="actions">
+                  <button onClick={() => this.handleLike(post._id)}>
+                    <img src={like} alt='Botão para curtir o Post' />
+                  </button>
+                  <img src={comment} alt='Botão para adicionar comentário ao Post' />
+                  <img src={send} alt='Botão para compartilhar o Post' />
+                </div>
 
-              <strong>{post.likes} curtidas</strong>
+                <strong>{post.likes} curtidas</strong>
 
-              <p>
-                {post.description}
-                <span>{post.hashtags}</span>
-              </p>
-            </footer>
-          </article>
-        ))}
+                <p>
+                  {post.description}
+                  <span>{post.hashtags}</span>
+                </p>
+              </footer>
+            </article>
+          ))
+        }
       </section>
     )
   }
